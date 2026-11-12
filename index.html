@@ -4,8 +4,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>VefeOZONE Micro-Transfer</title>
-  <meta name="description" content="A bounded-batch native coin distribution interface for the VefeOZONE testnet.">
+  <title>OZONE Micro-Transfer</title>
+  <meta name="description" content="A bounded-batch native coin distribution interface for the OZONE network.">
   <style>
     :root {
       color-scheme: dark;
@@ -182,7 +182,7 @@
       </div>
 
       <label for="contract">Deployed contract address</label>
-      <input id="contract" placeholder="0x..." autocomplete="off">
+      <input id="contract" value="0x91543bf5A4c8b92c17365e10E6fA0A1Ba05F9D4D" placeholder="0x..." autocomplete="off">
 
       <label for="recipient">Recipient address</label>
       <input id="recipient" placeholder="0x..." autocomplete="off">
@@ -221,10 +221,10 @@
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
   <script>
     (() => {
-      // VefeOZONE network configuration supplied by the project owner.
+      // OZONE network configuration supplied by the project owner.
       // The RPC hostname was supplied without a scheme; this frontend uses HTTPS.
       const VEFEOZONE = {
-        chainId: "0x2789", // 10125
+        chainId: "0x2789", // 10121
         chainName: "OZONE Mainnet",
         nativeCurrency: { name: "OZONE", symbol: "OZONE", decimals: 18 },
         rpcUrls: ["https://chain.ozonescan.com"],
@@ -256,7 +256,7 @@
         return new ethers.Contract(address, ABI, signer);
       }
 
-      async function ensureVefeOZONENetwork() {
+      async function ensureOZONENetwork() {
         const current = await window.ethereum.request({ method: "eth_chainId" });
         if (current.toLowerCase() === VEFEOZONE.chainId) return;
 
@@ -276,14 +276,14 @@
 
         const verified = await window.ethereum.request({ method: "eth_chainId" });
         if (verified.toLowerCase() !== VEFEOZONE.chainId) {
-          throw new Error("Wallet is not connected to VefeOZONE Testnet (chain ID 10125).");
+          throw new Error("Wallet is not connected to OZONE Testnet (chain ID 10121).");
         }
       }
 
       async function connect() {
         if (!window.ethereum) throw new Error("MetaMask or another injected EVM wallet was not found.");
         await window.ethereum.request({ method: "eth_requestAccounts" });
-        await ensureVefeOZONENetwork();
+        await ensureOZONENetwork();
         provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         account = await signer.getAddress();
@@ -291,12 +291,12 @@
         const network = await provider.getNetwork();
         $("chain").textContent = network.chainId.toString();
         if (network.chainId !== 10125n) {
-          throw new Error("Wrong network. Please connect to VefeOZONE Testnet (10125).");
+          throw new Error("Wrong network. Please connect to OZONE Testnet (10125).");
         }
         $("connect").textContent = "Wallet connected";
         $("refresh").disabled = false;
         $("start").disabled = false;
-        say("Wallet connected. Check that the displayed chain ID is your VefeOZONE testnet chain ID.");
+        say("Wallet connected. Check that the displayed chain ID is your OZONE testnet chain ID.");
         await refresh();
       }
 
