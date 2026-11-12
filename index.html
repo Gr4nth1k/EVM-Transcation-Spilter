@@ -290,7 +290,7 @@
         $("wallet").textContent = short(account);
         const network = await provider.getNetwork();
         $("chain").textContent = network.chainId.toString();
-        if (network.chainId !== 10125n) {
+        if (network.chainId !== 10121n) {
           throw new Error("Wrong network. Please connect to OZONE Testnet (10125).");
         }
         $("connect").textContent = "Wallet connected";
