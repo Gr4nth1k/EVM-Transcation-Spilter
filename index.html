@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VefeOZONE Micro-Transfer</title>
+  <meta name="description" content="A bounded-batch native coin distribution interface for the VefeOZONE testnet.">
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0b1020;
+      color: #eef2ff;
+    }
+
+    main {
+      width: min(760px, calc(100% - 32px));
+      margin: 48px auto;
+    }
+
+    .panel {
+      background: #121a2d;
+      border: 1px solid #293550;
+      border-radius: 18px;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 27px;
+    }
+
+    p,
+    .muted {
+      color: #a8b4cc;
+      line-height: 1.55;
+    }
+
+    label {
+      display: block;
+      margin: 16px 0 7px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid #35435f;
+      border-radius: 10px;
+      background: #0b1222;
+      color: white;
+      font-size: 15px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 650;
+      cursor: pointer;
+      background: #6d8cff;
+      color: #071126;
+    }
+
+    button.secondary {
+      background: #263653;
+      color: #e6edff;
+    }
+
+    button.danger {
+      background: #572b3a;
+      color: #ffe3e9;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      padding: 13px;
+      background: #0b1222;
+      border: 1px solid #293550;
+      border-radius: 12px;
+      min-width: 0;
+    }
+
+    .stat small {
+      display: block;
+      color: #9eabc4;
+      margin-bottom: 6px;
+    }
+
+    .stat strong {
+      overflow-wrap: anywhere;
+      font-size: 15px;
+    }
+
+    #status {
+      margin-top: 18px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #0b1222;
+      color: #cbd5e1;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .warning {
+      border-left: 3px solid #e6b85c;
+      padding: 10px 13px;
+      background: #282315;
+      border-radius: 6px;
+      margin-top: 16px;
+      color: #f6e7bd;
+      font-size: 13px;
+    }
+
+    code {
+      color: #b9c9ff;
+    }
+
+    @media (max-width: 520px) {
+      main {
+        margin: 20px auto;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <section class="panel">
+      <h1>OZONE Micro-Transfer</h1>
+      <p>Deposit native OZONE, then distribute it as small internal transfers in bounded batches.</p>
+      <p class="muted" style="font-size:12px">
+        Network: OZONE<br>
+      </p>
+
+      <div class="warning">
+        This is a testnet demonstration. A batch is one blockchain transaction, not one transaction hash per
+        micro-payment.
+        Each batch can execute at most 50 internal transfers. Test with tiny amounts first.
+      </div>
+
+      <div class="actions">
+        <button id="connect">Connect wallet</button>
+        <button id="refresh" class="secondary" disabled>Refresh status</button>
+      </div>
+
+      <label for="contract">Deployed contract address</label>
+      <input id="contract" placeholder="0x..." autocomplete="off">
+
+      <label for="recipient">Recipient address</label>
+      <input id="recipient" placeholder="0x..." autocomplete="off">
+
+      <label for="total">Total amount (OZONE)</label>
+      <input id="total" type="text" inputmode="decimal" value="0.001">
+
+      <label for="unit">Amount per internal transfer (OZONE)</label>
+      <input id="unit" type="text" inputmode="decimal" value="0.0000001">
+
+      <label for="batch">Transfers per batch (1–50)</label>
+      <input id="batch" type="number" min="1" max="50" step="1" value="10">
+
+      <div class="actions">
+        <button id="start" disabled>Deposit & start campaign</button>
+        <button id="process" class="secondary" disabled>Process next batch</button>
+        <button id="cancel" class="danger" disabled>Cancel & refund remainder</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><small>Wallet</small><strong id="wallet">Not connected</strong></div>
+        <div class="stat"><small>Network chain ID</small><strong id="chain">—</strong></div>
+        <div class="stat"><small>Campaign status</small><strong id="active">—</strong></div>
+        <div class="stat"><small>Remaining OZONE</small><strong id="remaining">—</strong></div>
+        <div class="stat"><small>Distributed OZONE</small><strong id="distributed">—</strong></div>
+        <div class="stat"><small>Internal transfers completed</small><strong id="transfers">—</strong></div>
+        <div class="stat"><small>Estimated total transfers</small><strong id="expected">—</strong></div>
+        <div class="stat"><small>Maximum transfers per batch</small><strong>50</strong></div>
+      </div>
+
+      <div id="status" role="status">Connect MetaMask, enter your deployed contract address, and make sure MetaMask is
+        connected to your OZONE testnet.</div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+  <script>
+    (() => {
+      // VefeOZONE network configuration supplied by the project owner.
+      // The RPC hostname was supplied without a scheme; this frontend uses HTTPS.
+      const VEFEOZONE = {
+        chainId: "0x2789", // 10125
+        chainName: "OZONE Mainnet",
+        nativeCurrency: { name: "OZONE", symbol: "OZONE", decimals: 18 },
+        rpcUrls: ["https://chain.ozonescan.com"],
+        blockExplorerUrls: ["https://ozonescan.com/"]
+      };
+
+      const ABI = [
+        "function owner() view returns (address)",
+        "function recipient() view returns (address)",
+        "function paymentAmount() view returns (uint256)",
+        "function remaining() view returns (uint256)",
+        "function totalDistributed() view returns (uint256)",
+        "function totalTransfers() view returns (uint256)",
+        "function active() view returns (bool)",
+        "function startCampaign(address payable recipient,uint256 paymentAmount) payable",
+        "function processBatch(uint256 count)",
+        "function cancelCampaign()"
+      ];
+
+      let provider, signer, account, contract;
+      const $ = id => document.getElementById(id);
+      const say = message => { $("status").textContent = message; };
+      const short = value => value ? value.slice(0, 6) + "…" + value.slice(-4) : "—";
+      const fmt = value => ethers.formatEther(value);
+
+      function getContract() {
+        const address = $("contract").value.trim();
+        if (!ethers.isAddress(address)) throw new Error("Enter a valid deployed contract address.");
+        return new ethers.Contract(address, ABI, signer);
+      }
+
+      async function ensureVefeOZONENetwork() {
+        const current = await window.ethereum.request({ method: "eth_chainId" });
+        if (current.toLowerCase() === VEFEOZONE.chainId) return;
+
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: VEFEOZONE.chainId }]
+          });
+        } catch (error) {
+          // Error 4902 means the network is not yet in the wallet.
+          if (error.code !== 4902) throw error;
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [VEFEOZONE]
+          });
+        }
+
+        const verified = await window.ethereum.request({ method: "eth_chainId" });
+        if (verified.toLowerCase() !== VEFEOZONE.chainId) {
+          throw new Error("Wallet is not connected to VefeOZONE Testnet (chain ID 10125).");
+        }
+      }
+
+      async function connect() {
+        if (!window.ethereum) throw new Error("MetaMask or another injected EVM wallet was not found.");
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        await ensureVefeOZONENetwork();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        account = await signer.getAddress();
+        $("wallet").textContent = short(account);
+        const network = await provider.getNetwork();
+        $("chain").textContent = network.chainId.toString();
+        if (network.chainId !== 10125n) {
+          throw new Error("Wrong network. Please connect to VefeOZONE Testnet (10125).");
+        }
+        $("connect").textContent = "Wallet connected";
+        $("refresh").disabled = false;
+        $("start").disabled = false;
+        say("Wallet connected. Check that the displayed chain ID is your VefeOZONE testnet chain ID.");
+        await refresh();
+      }
+
+      async function refresh() {
+        contract = getContract();
+        const [isActive, rem, dist, count, unit, dest, owner] = await Promise.all([
+          contract.active(), contract.remaining(), contract.totalDistributed(),
+          contract.totalTransfers(), contract.paymentAmount(),
+          contract.recipient(), contract.owner()
+        ]);
+        $("active").textContent = isActive ? "Active" : "Inactive";
+        $("remaining").textContent = fmt(rem) + " OZONE";
+        $("distributed").textContent = fmt(dist) + " OZONE";
+        $("transfers").textContent = count.toString();
+        $("expected").textContent = unit > 0n && (rem + unit - 1n) / unit + count > 0n
+          ? ((rem + unit - 1n) / unit + count).toString() : "—";
+        $("recipient").dataset.onchain = dest;
+        const isOwner = owner.toLowerCase() === account.toLowerCase();
+        $("start").disabled = !isOwner || isActive;
+        $("process").disabled = !isOwner || !isActive;
+        $("cancel").disabled = !isOwner || !isActive;
+        $("refresh").disabled = false;
+        say("Status refreshed. On-chain recipient: " + dest + ". Contract owner: " + owner + ".");
+      }
+
+      async function startCampaign() {
+        contract = getContract();
+        const recipient = $("recipient").value.trim();
+        if (!ethers.isAddress(recipient)) throw new Error("Enter a valid recipient address.");
+        const total = ethers.parseEther($("total").value.trim());
+        const unit = ethers.parseEther($("unit").value.trim());
+        if (total <= 0n || unit <= 0n || unit > total) throw new Error("Check total and per-transfer amounts.");
+        const expected = (total + unit - 1n) / unit;
+        if (!confirm("Deposit " + fmt(total) + " OZONE into the contract for " + expected.toString() +
+          " internal transfers? Contract calls cost additional gas.")) return;
+
+        say("Please confirm the deposit transaction in your wallet…");
+        const tx = await contract.startCampaign(recipient, unit, { value: total });
+        say("Deposit submitted: " + tx.hash + "\\nWaiting for confirmation…");
+        await tx.wait();
+        say("Campaign started. You can now process bounded batches.");
+        await refresh();
+      }
+
+      async function processBatch() {
+        contract = getContract();
+        const count = Number($("batch").value);
+        if (!Number.isInteger(count) || count < 1 || count > 50) throw new Error("Batch size must be between 1 and 50.");
+        if (!confirm("Execute up to " + count + " internal transfers in ONE blockchain transaction?")) return;
+        say("Please confirm the batch transaction in your wallet…");
+        const tx = await contract.processBatch(count);
+        say("Batch submitted: " + tx.hash + "\\nWaiting for confirmation…");
+        await tx.wait();
+        say("Batch confirmed: " + tx.hash);
+        await refresh();
+      }
+
+      async function cancelCampaign() {
+        contract = getContract();
+        if (!confirm("Cancel the campaign and refund the undistributed balance to the contract owner?")) return;
+        say("Please confirm cancellation in your wallet…");
+        const tx = await contract.cancelCampaign();
+        say("Cancellation submitted: " + tx.hash + "\\nWaiting for confirmation…");
+        await tx.wait();
+        say("Campaign cancelled and remaining funds refunded.");
+        await refresh();
+      }
+
+      async function run(fn) {
+        try { await fn(); }
+        catch (error) {
+          console.error(error);
+          say(error.shortMessage || error.reason || error.message || String(error));
+        }
+      }
+
+      $("connect").addEventListener("click", () => run(connect));
+      $("refresh").addEventListener("click", () => run(refresh));
+      $("start").addEventListener("click", () => run(startCampaign));
+      $("process").addEventListener("click", () => run(processBatch));
+      $("cancel").addEventListener("click", () => run(cancelCampaign));
+
+      if (window.ethereum) {
+        window.ethereum.on?.("accountsChanged", () => location.reload());
+        window.ethereum.on?.("chainChanged", () => location.reload());
+      }
+    })();
+  </script>
+</body>
+
+</html>
